@@ -1,2 +1,2 @@
 # screenoff-privacy
-Screen Off privac policy 
+Screen Off privacy policy 
