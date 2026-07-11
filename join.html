@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Join ScreenOff</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #0A1628;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #fff;
+      padding: 24px;
+      padding-bottom: max(24px, env(safe-area-inset-bottom));
+    }
+
+    .card {
+      width: 100%;
+      max-width: 360px;
+      background-color: #0d1e35;
+      border: 1px solid rgba(0,188,212,0.2);
+      border-radius: 24px;
+      padding: 36px 28px;
+      text-align: center;
+    }
+
+    .icon {
+      font-size: 52px;
+      margin-bottom: 16px;
+      line-height: 1;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      margin-bottom: 10px;
+      line-height: 1.25;
+    }
+
+    .sub {
+      font-size: 14px;
+      color: #4a6fa5;
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    /* Loading state */
+    #loading .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(0,188,212,0.2);
+      border-top-color: #00BCD4;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Fallback state (hidden until needed) */
+    #fallback { display: none; }
+
+    .btn-primary {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      border-radius: 16px;
+      background-color: #00BCD4;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 900;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      margin-bottom: 12px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:active { opacity: 0.8; }
+
+    .btn-secondary {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border-radius: 16px;
+      background-color: transparent;
+      border: 1.5px solid rgba(0,188,212,0.3);
+      color: #00BCD4;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: opacity 0.15s;
+    }
+    .btn-secondary:active { opacity: 0.7; }
+
+    .small { font-size: 12px; color: #4a6fa5; margin-top: 16px; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <!-- Loading / opening-app state -->
+  <div id="loading">
+    <div class="icon">📱</div>
+    <h1>Opening ScreenOff…</h1>
+    <p class="sub">You've been invited to compete.<br>Opening the app now.</p>
+    <div class="spinner"></div>
+  </div>
+
+  <!-- Fallback shown if the app isn't installed -->
+  <div id="fallback">
+    <div class="icon">🔥</div>
+    <h1>ScreenOff is better with friends</h1>
+    <p class="sub">
+      Compete on who uses their phone <strong style="color:#fff">least</strong>.
+      Real-time rankings, streaks, and bragging rights.
+    </p>
+    <!-- TODO: replace href with the real Play Store URL before publishing -->
+    <a id="play-btn" class="btn-primary" href="https://play.google.com/store/apps/details?id=com.screenoffapp.app">
+      Get ScreenOff on Google Play
+    </a>
+    <a id="open-btn" class="btn-secondary" href="#">
+      Already installed? Open app →
+    </a>
+    <p class="small">Free · No ads · Android</p>
+  </div>
+</div>
+
+<script>
+  (function () {
+    // Extract invite code from ?g=CODE
+    var params = new URLSearchParams(window.location.search);
+    var code = params.get('g') || '';
+
+    // Build the custom-scheme URL that the Android intent-filter listens for
+    var deepLink = code
+      ? 'screenoff://join/' + code.toUpperCase()
+      : 'screenoff://home';
+
+    // Wire up the "Already installed?" button in the fallback view
+    document.getElementById('open-btn').href = deepLink;
+
+    // Attempt to hand off to the app immediately
+    window.location.href = deepLink;
+
+    // After 1.5 s, if the page is still visible the app isn't installed —
+    // swap to the fallback content.
+    var timer = setTimeout(function () {
+      if (!document.hidden) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('fallback').style.display = 'block';
+      }
+    }, 1500);
+
+    // If the user returns to the tab after the app launched and closed,
+    // cancel the timer so we don't flash the fallback.
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) clearTimeout(timer);
+    });
+  })();
+</script>
+</body>
+</html>
