@@ -143,9 +143,10 @@
     var code = params.get('g') || '';
 
     // Build the custom-scheme URL that the Android intent-filter listens for
+    var playUrl = 'https://play.google.com/store/apps/details?id=com.screenoffapp.app';
     var deepLink = code
-      ? 'screenoff://join/' + code.toUpperCase()
-      : 'screenoff://home';
+      ? 'intent://join/' + code.toUpperCase() + '#Intent;scheme=screenoff;package=com.screenoffapp.app;S.browser_fallback_url=' + encodeURIComponent(playUrl) + ';end'
+      : 'intent://home#Intent;scheme=screenoff;package=com.screenoffapp.app;S.browser_fallback_url=' + encodeURIComponent(playUrl) + ';end';
 
     // Wire up the "Already installed?" button in the fallback view
     document.getElementById('open-btn').href = deepLink;
@@ -171,3 +172,4 @@
 </script>
 </body>
 </html>
+
