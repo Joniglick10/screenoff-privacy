@@ -104,6 +104,33 @@
     .btn-secondary:active { opacity: 0.7; }
 
     .small { font-size: 12px; color: #4a6fa5; margin-top: 16px; }
+
+    .code-box {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background-color: rgba(0,188,212,0.08);
+      border: 1.5px dashed rgba(0,188,212,0.35);
+      border-radius: 14px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+    .code-box .label { font-size: 11px; color: #4a6fa5; text-transform: uppercase; letter-spacing: 0.08em; }
+    .code-box .value { font-size: 20px; font-weight: 900; letter-spacing: 0.06em; color: #fff; }
+    .code-box button {
+      background-color: rgba(0,188,212,0.18);
+      border: none;
+      border-radius: 10px;
+      color: #00BCD4;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 8px 12px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .code-box button:active { opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -125,7 +152,13 @@
       Compete on who uses their phone <strong style="color:#fff">least</strong>.
       Real-time rankings, streaks, and bragging rights.
     </p>
-    <!-- TODO: replace href with the real Play Store URL before publishing -->
+    <div id="code-box" class="code-box">
+      <div>
+        <div class="label">Your invite code</div>
+        <div class="value" id="code-value"></div>
+      </div>
+      <button id="copy-btn" type="button">Copy</button>
+    </div>
     <a id="play-btn" class="btn-primary" href="https://play.google.com/store/apps/details?id=com.screenoffapp.app">
       Get ScreenOff on Google Play
     </a>
@@ -138,18 +171,42 @@
 
 <script>
   (function () {
-    // Extract invite code from ?g=CODE
+    // Extract invite code + referrer uid from ?g=CODE&ref=UID
     var params = new URLSearchParams(window.location.search);
-    var code = params.get('g') || '';
+    var code = (params.get('g') || '').toUpperCase();
+    var ref = params.get('ref') || '';
 
     // Build the custom-scheme URL that the Android intent-filter listens for
-    var playUrl = 'https://play.google.com/store/apps/details?id=com.screenoffapp.app';
+    var basePlayUrl = 'https://play.google.com/store/apps/details?id=com.screenoffapp.app';
+    // The Play Install Referrer carries this same g=/ref= pair through a fresh
+    // install with no app yet installed — read back on first launch so the
+    // invite isn't lost just because the user had to go via the Play Store.
+    var referrerValue = code ? ('g=' + code + (ref ? '&ref=' + ref : '')) : '';
+    var playUrl = referrerValue
+      ? basePlayUrl + '&referrer=' + encodeURIComponent(referrerValue)
+      : basePlayUrl;
     var deepLink = code
-      ? 'intent://join/' + code.toUpperCase() + '#Intent;scheme=screenoff;package=com.screenoffapp.app;S.browser_fallback_url=' + encodeURIComponent(playUrl) + ';end'
+      ? 'intent://join/' + code + '#Intent;scheme=screenoff;package=com.screenoffapp.app;S.browser_fallback_url=' + encodeURIComponent(playUrl) + ';end'
       : 'intent://home#Intent;scheme=screenoff;package=com.screenoffapp.app;S.browser_fallback_url=' + encodeURIComponent(playUrl) + ';end';
 
-    // Wire up the "Already installed?" button in the fallback view
+    // Wire up the "Already installed?" button and the Play Store button
+    // (so both carry the referrer even if the auto-redirect below never fires).
     document.getElementById('open-btn').href = deepLink;
+    document.getElementById('play-btn').href = playUrl;
+
+    // Manual fallback for anyone who can't complete the app handoff at all:
+    // the code itself, visible and copyable.
+    if (code) {
+      document.getElementById('code-value').textContent = code;
+      document.getElementById('code-box').style.display = 'flex';
+      document.getElementById('copy-btn').addEventListener('click', function () {
+        var btn = this;
+        var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1500); };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(code).then(done).catch(function () {});
+        }
+      });
+    }
 
     // Attempt to hand off to the app immediately
     window.location.href = deepLink;
