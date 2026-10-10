@@ -186,7 +186,7 @@
       ? basePlayUrl + '&referrer=' + encodeURIComponent(referrerValue)
       : basePlayUrl;
     var deepLink = code
-      ? 'intent://join/' + code + '#Intent;scheme=screenoff;package=com.screenoffapp.app;S.browser_fallback_url=' + encodeURIComponent(playUrl) + ';end'
+      ? 'intent://join/' + code + (ref ? '?ref=' + encodeURIComponent(ref) : '') + '#Intent;scheme=screenoff;package=com.screenoffapp.app;S.browser_fallback_url=' + encodeURIComponent(playUrl) + ';end'
       : 'intent://home#Intent;scheme=screenoff;package=com.screenoffapp.app;S.browser_fallback_url=' + encodeURIComponent(playUrl) + ';end';
 
     // Wire up the "Already installed?" button and the Play Store button
