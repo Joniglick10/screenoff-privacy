@@ -208,22 +208,64 @@
       });
     }
 
-    // Attempt to hand off to the app immediately
-    window.location.href = deepLink;
+    function showFallback() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('fallback').style.display = 'block';
+    }
 
-    // After 1.5 s, if the page is still visible the app isn't installed —
-    // swap to the fallback content.
-    var timer = setTimeout(function () {
-      if (!document.hidden) {
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('fallback').style.display = 'block';
+    // Every invited user ends up with a tab sitting on this page after the
+    // app opens once. If the browser later resurfaces that same tab (e.g.
+    // the OS switched back to Chrome for an unrelated link), re-firing the
+    // intent:// here throws the user back into the app instead of wherever
+    // they meant to go, every time they open their browser. So the
+    // auto-redirect below may only fire on a genuinely first, fresh
+    // navigation to THIS invite, once per tab:
+    //  - performance navigation type must be 'navigate' — never 'reload' or
+    //    'back_forward'.
+    //  - a sessionStorage flag keyed by the invite code blocks any repeat,
+    //    even a second distinct 'navigate' to the exact same link in this tab.
+    var sessionKey = 'screenoff_join_redirected_' + (code || 'none');
+    var alreadyRedirected = (function () {
+      try { return sessionStorage.getItem(sessionKey) === '1'; } catch (e) { return false; }
+    })();
+    var navEntry = (window.performance && typeof performance.getEntriesByType === 'function')
+      ? performance.getEntriesByType('navigation')[0]
+      : null;
+    var isFreshNavigation = !!navEntry && navEntry.type === 'navigate';
+
+    if (!alreadyRedirected && isFreshNavigation) {
+      try { sessionStorage.setItem(sessionKey, '1'); } catch (e) {}
+
+      // Attempt to hand off to the app immediately
+      window.location.href = deepLink;
+
+      // After 1.5 s, if the page is still visible the app isn't installed —
+      // swap to the fallback content.
+      var timer = setTimeout(function () {
+        if (!document.hidden) showFallback();
+      }, 1500);
+
+      // If the user returns to the tab after the app launched and closed,
+      // cancel the timer so we don't flash the fallback.
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) clearTimeout(timer);
+      });
+    } else {
+      // Not a fresh navigation (or already redirected once in this tab) —
+      // skip the app handoff attempt entirely and show the manual card now.
+      showFallback();
+    }
+
+    // Defense in depth: if this exact tab is ever restored from the
+    // browser's back-forward cache — the same mechanism behind the reported
+    // bug — never treat that as a reason to redirect. Listeners registered
+    // on the original load (this one) still fire on a bfcache restore even
+    // though the rest of this script does not re-run.
+    window.addEventListener('pageshow', function (event) {
+      if (event.persisted) {
+        try { sessionStorage.setItem(sessionKey, '1'); } catch (e) {}
+        showFallback();
       }
-    }, 1500);
-
-    // If the user returns to the tab after the app launched and closed,
-    // cancel the timer so we don't flash the fallback.
-    document.addEventListener('visibilitychange', function () {
-      if (document.hidden) clearTimeout(timer);
     });
   })();
 </script>
